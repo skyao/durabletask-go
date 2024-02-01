@@ -59,7 +59,8 @@ func (c *TaskHubGrpcClient) processOrchestrationWorkItem(
 	executor backend.Executor,
 	workItem *protos.OrchestratorRequest,
 ) {
-	results, err := executor.ExecuteOrchestrator(ctx, api.InstanceID(workItem.InstanceId), workItem.PastEvents, workItem.NewEvents)
+	results, err := executor.ExecuteOrchestrator(ctx, api.InstanceID(workItem.InstanceId), 
+		workItem.Revision, workItem.PastEvents, workItem.NewEvents)
 
 	resp := protos.OrchestratorResponse{InstanceId: workItem.InstanceId}
 	if err != nil {

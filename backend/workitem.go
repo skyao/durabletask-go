@@ -16,6 +16,7 @@ type WorkItem interface {
 
 type OrchestrationWorkItem struct {
 	InstanceID api.InstanceID
+	Revision   int
 	NewEvents  []*HistoryEvent
 	LockedBy   string
 	RetryCount int32

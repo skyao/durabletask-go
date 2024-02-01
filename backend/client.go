@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/microsoft/durabletask-go/api"
+	"github.com/microsoft/durabletask-go/backend/versioning"
 	"github.com/microsoft/durabletask-go/internal/helpers"
 	"github.com/microsoft/durabletask-go/internal/protos"
 )
@@ -53,12 +54,15 @@ func (c *backendClient) ScheduleNewOrchestration(ctx context.Context, orchestrat
 		req.InstanceId = u.String()
 	}
 
+	revision := versioning.GetDefaultRevisionForNewInstance(req.Name)
+	fmt.Printf("**** versioning ****: get default revision for new workflow instance: name=%s, revision=%d\n", req.Name, revision)
+
 	var span trace.Span
 	ctx, span = helpers.StartNewCreateOrchestrationSpan(ctx, req.Name, req.Version.GetValue(), req.InstanceId)
 	defer span.End()
 
 	tc := helpers.TraceContextFromSpan(span)
-	e := helpers.NewExecutionStartedEvent(req.Name, req.InstanceId, req.Input, nil, tc)
+	e := helpers.NewExecutionStartedEvent(req.Name, req.InstanceId, revision, req.Input, nil, tc)
 	if err := c.be.CreateOrchestrationInstance(ctx, e, WithOrchestrationIdReusePolicy(req.OrchestrationIdReusePolicy)); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

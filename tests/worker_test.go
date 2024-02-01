@@ -23,7 +23,8 @@ func Test_TryProcessSingleOrchestrationWorkItem_BasicFlow(t *testing.T) {
 	ctx := context.Background()
 	wi := &backend.OrchestrationWorkItem{
 		InstanceID: "test123",
-		NewEvents:  []*protos.HistoryEvent{helpers.NewExecutionStartedEvent("MyOrch", "test123", nil, nil, nil)},
+		Revision: 1,
+		NewEvents:  []*protos.HistoryEvent{helpers.NewExecutionStartedEvent("MyOrch", "test123", 1, nil, nil, nil)},
 	}
 	state := &backend.OrchestrationRuntimeState{}
 	result := &backend.ExecutionResults{Response: &protos.OrchestratorResponse{}}
@@ -34,7 +35,7 @@ func Test_TryProcessSingleOrchestrationWorkItem_BasicFlow(t *testing.T) {
 	be.EXPECT().CompleteOrchestrationWorkItem(anyContext, wi).Return(nil).Once()
 
 	ex := mocks.NewExecutor(t)
-	ex.EXPECT().ExecuteOrchestrator(anyContext, wi.InstanceID, state.OldEvents(), mock.Anything).Return(result, nil).Once()
+	ex.EXPECT().ExecuteOrchestrator(anyContext, wi.InstanceID, wi.Revision, state.OldEvents(), mock.Anything).Return(result, nil).Once()
 
 	worker := backend.NewOrchestrationWorker(be, ex, logger)
 	ok, err := worker.ProcessNext(ctx)
@@ -61,9 +62,10 @@ func Test_TryProcessSingleOrchestrationWorkItem_ExecutionStartedAndCompleted(t *
 	iid := api.InstanceID("test123")
 
 	// Simulate getting an ExecutionStarted message from the orchestration queue
-	startEvent := helpers.NewExecutionStartedEvent("MyOrchestration", string(iid), nil, nil, nil)
+	startEvent := helpers.NewExecutionStartedEvent("MyOrchestration", string(iid), 1, nil, nil, nil)
 	wi := &backend.OrchestrationWorkItem{
 		InstanceID: iid,
+		Revision: 1,
 		NewEvents:  []*protos.HistoryEvent{startEvent},
 	}
 
@@ -93,7 +95,7 @@ func Test_TryProcessSingleOrchestrationWorkItem_ExecutionStartedAndCompleted(t *
 
 	// Execute should be called with an empty oldEvents list. NewEvents should contain two items,
 	// but there doesn't seem to be a good way to assert this.
-	ex.EXPECT().ExecuteOrchestrator(anyContext, iid, []*protos.HistoryEvent{}, mock.Anything).Return(result, nil).Once()
+	ex.EXPECT().ExecuteOrchestrator(anyContext, iid, 1, []*protos.HistoryEvent{}, mock.Anything).Return(result, nil).Once()
 
 	// After execution, the Complete action should be called
 	be.EXPECT().CompleteOrchestrationWorkItem(anyContext, wi).Return(nil).Once()

@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/microsoft/durabletask-go/api"
+	"github.com/microsoft/durabletask-go/backend/versioning"
 	"github.com/microsoft/durabletask-go/internal/helpers"
 	"github.com/microsoft/durabletask-go/internal/protos"
 )
@@ -37,7 +38,7 @@ type activityExecutionResult struct {
 }
 
 type Executor interface {
-	ExecuteOrchestrator(ctx context.Context, iid api.InstanceID, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error)
+	ExecuteOrchestrator(ctx context.Context, iid api.InstanceID, revision int, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error)
 	ExecuteActivity(context.Context, api.InstanceID, *protos.HistoryEvent) (*protos.HistoryEvent, error)
 }
 
@@ -95,7 +96,8 @@ func NewGrpcExecutor(be Backend, logger Logger, opts ...grpcExecutorOptions) (ex
 }
 
 // ExecuteOrchestrator implements Executor
-func (executor *grpcExecutor) ExecuteOrchestrator(ctx context.Context, iid api.InstanceID, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error) {
+func (executor *grpcExecutor) ExecuteOrchestrator(ctx context.Context, iid api.InstanceID,
+	revision int, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error) {
 	result := &ExecutionResults{complete: make(chan interface{})}
 	executor.pendingOrchestrators.Store(iid, result)
 	defer executor.pendingOrchestrators.Delete(iid)
@@ -104,6 +106,7 @@ func (executor *grpcExecutor) ExecuteOrchestrator(ctx context.Context, iid api.I
 		Request: &protos.WorkItem_OrchestratorRequest{
 			OrchestratorRequest: &protos.OrchestratorRequest{
 				InstanceId:  string(iid),
+				Revision:    int32(revision),
 				ExecutionId: nil,
 				PastEvents:  oldEvents,
 				NewEvents:   newEvents,
@@ -196,6 +199,8 @@ func (g *grpcExecutor) GetWorkItems(req *protos.GetWorkItemsRequest, stream prot
 	if md, ok := metadata.FromIncomingContext(stream.Context()); ok {
 		g.logger.Infof("work item stream established by user-agent: %v", md.Get("user-agent"))
 	}
+
+	versioning.SaveReportedWorkflowRevisions(req.GetRevisions())
 
 	// There are some cases where the app may need to be notified when a client connects to fetch work items, like
 	// for auto-starting the worker. The app also has an opportunity to set itself as unavailable by returning an error.
@@ -308,15 +313,21 @@ func (g *grpcExecutor) RaiseEvent(ctx context.Context, req *protos.RaiseEventReq
 // StartInstance implements protos.TaskHubSidecarServiceServer
 func (g *grpcExecutor) StartInstance(ctx context.Context, req *protos.CreateInstanceRequest) (*protos.CreateInstanceResponse, error) {
 	instanceID := req.InstanceId
+	revision := versioning.GetDefaultRevisionForNewInstance(req.Name)
+	g.logger.Errorf("**** versioning ****: get default revision for new workflow instance: name=%s, revision=%d", req.Name, revision)
+
 	ctx, span := helpers.StartNewCreateOrchestrationSpan(ctx, req.Name, req.Version.GetValue(), instanceID)
 	defer span.End()
 
-	e := helpers.NewExecutionStartedEvent(req.Name, instanceID, req.Input, nil, helpers.TraceContextFromSpan(span))
+	e := helpers.NewExecutionStartedEvent(req.Name, instanceID, revision, req.Input, nil, helpers.TraceContextFromSpan(span))
 	if err := g.backend.CreateOrchestrationInstance(ctx, e, WithOrchestrationIdReusePolicy(req.OrchestrationIdReusePolicy)); err != nil {
 		return nil, err
 	}
 
-	return &protos.CreateInstanceResponse{InstanceId: instanceID}, nil
+	return &protos.CreateInstanceResponse{
+		InstanceId: instanceID,
+		Revision:   int32(revision),
+	}, nil
 }
 
 // TerminateInstance implements protos.TaskHubSidecarServiceServer

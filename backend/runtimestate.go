@@ -17,6 +17,7 @@ var ErrDuplicateEvent = errors.New("duplicate event")
 
 type OrchestrationRuntimeState struct {
 	instanceID      api.InstanceID
+	revision				int
 	newEvents       []*protos.HistoryEvent
 	oldEvents       []*protos.HistoryEvent
 	pendingTasks    []*protos.HistoryEvent
@@ -63,6 +64,7 @@ func (s *OrchestrationRuntimeState) addEvent(e *HistoryEvent, isNew bool) error 
 		if s.startEvent != nil {
 			return ErrDuplicateEvent
 		}
+		s.revision = int(startEvent.OrchestrationInstance.Revision)
 		s.startEvent = startEvent
 		s.createdTime = e.Timestamp.AsTime()
 	} else if completedEvent := e.GetExecutionCompleted(); completedEvent != nil {
@@ -114,6 +116,7 @@ func (s *OrchestrationRuntimeState) ApplyActions(actions []*protos.OrchestratorA
 					helpers.NewExecutionStartedEvent(
 						s.startEvent.Name,
 						string(s.instanceID),
+						s.revision,
 						completedAction.Result,
 						s.startEvent.ParentInstance,
 						s.startEvent.ParentTraceContext,
@@ -185,6 +188,9 @@ func (s *OrchestrationRuntimeState) ApplyActions(actions []*protos.OrchestratorA
 			startEvent := helpers.NewExecutionStartedEvent(
 				createSO.Name,
 				createSO.InstanceId,
+				// TODO: for subworkflow, how to set revision
+				// hard code to 1 in prototype
+				1,
 				createSO.Input,
 				helpers.NewParentInfo(action.Id, s.startEvent.Name, string(s.instanceID)),
 				currentTraceContext,
