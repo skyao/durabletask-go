@@ -55,7 +55,7 @@ func (c *backendClient) ScheduleNewOrchestration(ctx context.Context, orchestrat
 	}
 
 	revision := versioning.GetDefaultRevisionForNewInstance(req.Name)
-	fmt.Printf("**** versioning ****: get default revision for new workflow instance: name=%s, revision=%d\n", req.Name, revision)
+	fmt.Printf("**** versioning ****: get default revision for new workflow instance from client: name=%s, revision=%d\n", req.Name, revision)
 
 	var span trace.Span
 	ctx, span = helpers.StartNewCreateOrchestrationSpan(ctx, req.Name, req.Version.GetValue(), req.InstanceId)

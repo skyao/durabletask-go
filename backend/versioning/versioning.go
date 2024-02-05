@@ -32,6 +32,13 @@ func prepareHardcodeConfig() *VersioningConfig {
 		defaultRevisionForNewInstance(9)
 	config.workflows[wc.workflowName] = wc
 
+		// 1 revision sets, default to 9 on workflow level
+	// revision set 7/8/9, default to 9
+	wc2 := newWorkflowConfig("io.dapr.quickstarts.workflows.TestWorkflow").
+		addRevisionSet([]int{7, 8, 9}, 9).
+		defaultRevisionForNewInstance(9)
+	config.workflows[wc2.workflowName] = wc2
+
 	return config
 }
 
