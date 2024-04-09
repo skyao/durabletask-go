@@ -16,7 +16,7 @@ import (
 func NewExecutionStartedEvent(
 	name string,
 	instanceId string,
-	version string,
+	instanceVersion string,
 	input *wrapperspb.StringValue,
 	parent *protos.ParentInstanceInfo,
 	parentTraceContext *protos.TraceContext,
@@ -30,9 +30,9 @@ func NewExecutionStartedEvent(
 				ParentInstance: parent,
 				Input:          input,
 				OrchestrationInstance: &protos.OrchestrationInstance{
-					InstanceId:  instanceId,
-					Version:     version,
-					ExecutionId: wrapperspb.String(uuid.New().String()),
+					InstanceId:      instanceId,
+					InstanceVersion: instanceVersion,
+					ExecutionId:     wrapperspb.String(uuid.New().String()),
 				},
 				ParentTraceContext: parentTraceContext,
 			},

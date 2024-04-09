@@ -17,7 +17,7 @@ var ErrDuplicateEvent = errors.New("duplicate event")
 
 type OrchestrationRuntimeState struct {
 	instanceID      api.InstanceID
-	version         string
+	instanceVersion string
 	newEvents       []*protos.HistoryEvent
 	oldEvents       []*protos.HistoryEvent
 	pendingTasks    []*protos.HistoryEvent
@@ -64,7 +64,7 @@ func (s *OrchestrationRuntimeState) addEvent(e *HistoryEvent, isNew bool) error 
 		if s.startEvent != nil {
 			return ErrDuplicateEvent
 		}
-		s.version = startEvent.OrchestrationInstance.Version
+		s.instanceVersion = startEvent.OrchestrationInstance.InstanceVersion
 		s.startEvent = startEvent
 		s.createdTime = e.Timestamp.AsTime()
 	} else if completedEvent := e.GetExecutionCompleted(); completedEvent != nil {
@@ -116,7 +116,7 @@ func (s *OrchestrationRuntimeState) ApplyActions(actions []*protos.OrchestratorA
 					helpers.NewExecutionStartedEvent(
 						s.startEvent.Name,
 						string(s.instanceID),
-						s.version,
+						s.instanceVersion,
 						completedAction.Result,
 						s.startEvent.ParentInstance,
 						s.startEvent.ParentTraceContext,
