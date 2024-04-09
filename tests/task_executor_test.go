@@ -27,12 +27,12 @@ func Test_Executor_WaitForEventSchedulesTimer(t *testing.T) {
 	oldEvents := []*protos.HistoryEvent{}
 	newEvents := []*protos.HistoryEvent{
 		startEvent,
-		helpers.NewExecutionStartedEvent("Orchestration", string(iid), 1, nil, nil, nil),
+		helpers.NewExecutionStartedEvent("Orchestration", string(iid), "1.0.0", nil, nil, nil),
 	}
 
 	// Execute the orchestrator function and expect to get back a single timer action
 	executor := task.NewTaskExecutor(r)
-	results, err := executor.ExecuteOrchestrator(ctx, iid, 1, oldEvents, newEvents)
+	results, err := executor.ExecuteOrchestrator(ctx, iid, "1.0.0", oldEvents, newEvents)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(results.Response.Actions), "Expected a single action to be scheduled")
 	createTimerAction := results.Response.Actions[0].GetCreateTimer()
@@ -57,12 +57,12 @@ func Test_Executor_SuspendStopsAllActions(t *testing.T) {
 	oldEvents := []*protos.HistoryEvent{}
 	newEvents := []*protos.HistoryEvent{
 		helpers.NewOrchestratorStartedEvent(),
-		helpers.NewExecutionStartedEvent("SuspendResumeOrchestration", string(iid), 1, nil, nil, nil),
+		helpers.NewExecutionStartedEvent("SuspendResumeOrchestration", string(iid), "1.0.0", nil, nil, nil),
 		helpers.NewSuspendOrchestrationEvent(""),
 	}
 
 	// Execute the orchestrator function and expect to get back no actions
-	results, err := executor.ExecuteOrchestrator(ctx, iid, 1, oldEvents, newEvents)
+	results, err := executor.ExecuteOrchestrator(ctx, iid, "1.0.0", oldEvents, newEvents)
 	require.NoError(t, err)
 	require.Empty(t, results.Response.Actions, "Suspended orchestrations should not have any actions")
 }

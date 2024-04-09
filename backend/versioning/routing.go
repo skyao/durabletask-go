@@ -6,56 +6,56 @@ import (
 	"sync"
 )
 
-var routing = newRevisionRouting()
+var routing = newVersionRouting()
 
-func SaveReportedWorkflowRevisions(revisions map[string]int32) {
-	for name, revision := range revisions {
-		routing.add(name, int(revision))
+func SaveReportedWorkflowVersions(versions map[string]string) {
+	for name, version := range versions {
+		routing.add(name, version)
 	}
 }
 
-func GetWorkflowRevision(workflowName string) int {
+func GetWorkflowVersion(workflowName string) string {
 	return routing.get(workflowName)
 }
 
-type revisionRouting struct {
-	revisions map[string]int
-	lock      sync.RWMutex
+type versionRouting struct {
+	versions map[string]string
+	lock     sync.RWMutex
 }
 
-func newRevisionRouting() *revisionRouting {
-	return &revisionRouting{
-		revisions: make(map[string]int),
+func newVersionRouting() *versionRouting {
+	return &versionRouting{
+		versions: make(map[string]string),
 	}
 }
 
-func (r *revisionRouting) add(name string, revision int) {
+func (r *versionRouting) add(name string, version string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	fmt.Printf("**** versioning ****: saved workflow revision for routing: name=%s, revision=%d\n",
-		name, revision)
+	fmt.Printf("**** versioning ****: saved workflow version for routing: name=%s, version=%s\n",
+		name, version)
 
-	r.revisions[name] = revision
+	r.versions[name] = version
 }
 
-func (r *revisionRouting) get(name string) int {
+func (r *versionRouting) get(name string) string {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
-  // name is actor type, value like "dapr.internal.default.WorkflowConsoleApp.workflow"
-  // key of r.revisions is workflow name, like "io.dapr.quickstarts.workflow.OrderProcessingWorkflow"	
-  key := name	
+	// name is actor type, value like "dapr.internal.default.WorkflowConsoleApp.workflow"
+	// key of r.versions is workflow name, like "io.dapr.quickstarts.workflow.OrderProcessingWorkflow"
+	key := name
 	if strings.Contains(key, "WorkflowConsoleApp") && strings.HasSuffix(key, ".workflow") {
 		key = "io.dapr.quickstarts.workflows.OrderProcessingWorkflow"
 	} else if strings.Contains(key, "TestConsoleApp") {
 		key = "io.dapr.quickstarts.workflows.TestWorkflow"
 	}
- 
-  revision, ok := r.revisions[key]
+
+	version, ok := r.versions[key]
 	if !(ok) {
-		revision = DEFAULT_REVISION
+		version = DEFAULT_VERSION
 	}
 
-	return revision
+	return version
 }

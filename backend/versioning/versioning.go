@@ -2,18 +2,18 @@ package versioning
 
 import "errors"
 
-const DEFAULT_REVISION int = 1
+const DEFAULT_VERSION string = "1.0.0"
 
 var hardcodeConfig = prepareHardcodeConfig()
 
-// Get default revision of specified workflow.
-func GetDefaultRevisionForNewInstance(workflowName string) int {
-	revision, err := hardcodeConfig.GetDefaultRevisionForNewInstance(workflowName)
+// Get default version of specified workflow.
+func GetDefaultVersionForNewInstance(workflowName string) string {
+	version, err := hardcodeConfig.GetDefaultVersionForNewInstance(workflowName)
 	if err != nil {
-		return DEFAULT_REVISION
+		return DEFAULT_VERSION
 	}
 
-	return revision
+	return version
 }
 
 func prepareHardcodeConfig() *VersioningConfig {
@@ -21,22 +21,22 @@ func prepareHardcodeConfig() *VersioningConfig {
 		workflows: make(map[string]*workflowConfig),
 	}
 
-	// 3 revision sets, default to 9 on workflow level
-	// revision set 1/2/3, default to 3
-	// revision set 4/5/6, default to 6
-	// revision set 7/8/9, default to 9
+	// 3 version sets, default to 9 on workflow level
+	// version set "1.1.0/1.2.0/1.3.0", default to "1.3.0"
+	// version set "2.4.0/2.5.0/2.6.0", default to "2.6.0"
+	// version set "3.7.0/3.8.0/3.9.0", default to "3.9.0"
 	wc := newWorkflowConfig("io.dapr.quickstarts.workflows.OrderProcessingWorkflow").
-		addRevisionSet([]int{1, 2, 3}, 3).
-		addRevisionSet([]int{4, 5, 6}, 6).
-		addRevisionSet([]int{7, 8, 9}, 9).
-		defaultRevisionForNewInstance(9)
+		addVersionSet([]string{"1.1.0", "1.2.0", "1.3.0"}, "1.3.0").
+		addVersionSet([]string{"2.4.0", "2.5.0", "2.6.0"}, "2.6.0").
+		addVersionSet([]string{"3.7.0", "3.8.0", "3.9.0"}, "3.9.0").
+		defaultVersionForNewInstance("3.9.0")
 	config.workflows[wc.workflowName] = wc
 
-		// 1 revision sets, default to 9 on workflow level
-	// revision set 7/8/9, default to 9
+	// 1 version sets, default to "3.9.0" on workflow level
+	// version set "3.7.0/3.8.0/3.9.0", default to "3.9.0"
 	wc2 := newWorkflowConfig("io.dapr.quickstarts.workflows.TestWorkflow").
-		addRevisionSet([]int{7, 8, 9}, 9).
-		defaultRevisionForNewInstance(9)
+		addVersionSet([]string{"3.7.0", "3.8.0", "3.9.0"}, "3.9.0").
+		defaultVersionForNewInstance("3.9.0")
 	config.workflows[wc2.workflowName] = wc2
 
 	return config
@@ -46,48 +46,48 @@ type VersioningConfig struct {
 	workflows map[string]*workflowConfig
 }
 
-func (config *VersioningConfig) GetDefaultRevisionForNewInstance(workflowName string) (int, error) {
+func (config *VersioningConfig) GetDefaultVersionForNewInstance(workflowName string) (string, error) {
 	wc, ok := config.workflows[workflowName]
 	if ok {
-		return wc.defaultRevision, nil
+		return wc.defaultVersion, nil
 	} else {
-		return -1, errors.New("no config found by workflow name " + workflowName)
+		return "", errors.New("no config found by workflow name " + workflowName)
 	}
 }
 
 type workflowConfig struct {
-	workflowName    string
-	revisionSets    []*revisionSet
-	defaultRevision int
+	workflowName   string
+	versionSets    []*versionSet
+	defaultVersion string
 }
 
 func newWorkflowConfig(workflowName string) *workflowConfig {
 	return &workflowConfig{
 		workflowName: workflowName,
-		revisionSets: make([]*revisionSet, 0, 8),
+		versionSets:  make([]*versionSet, 0, 8),
 	}
 }
 
-func (wc *workflowConfig) addRevisionSet(reversions []int, defaultRevision int) *workflowConfig {
-	rs := newRevisionSet(reversions, defaultRevision)
-	wc.revisionSets = append(wc.revisionSets, rs)
+func (wc *workflowConfig) addVersionSet(versions []string, defaultVersion string) *workflowConfig {
+	rs := newVersionSet(versions, defaultVersion)
+	wc.versionSets = append(wc.versionSets, rs)
 	return wc
 }
 
-func (wc *workflowConfig) defaultRevisionForNewInstance(defaultRevision int) *workflowConfig {
-	wc.defaultRevision = defaultRevision
+func (wc *workflowConfig) defaultVersionForNewInstance(defaultVersion string) *workflowConfig {
+	wc.defaultVersion = defaultVersion
 	return wc
 }
 
-type revisionSet struct {
-	revisions       []int
-	defaultRevision int
+type versionSet struct {
+	versions       []string
+	defaultVersion string
 }
 
-func newRevisionSet(reversions []int, defaultRevision int) *revisionSet {
+func newVersionSet(versions []string, defaultVersion string) *versionSet {
 	// TBD: add parameter checking here
-	return &revisionSet{
-		revisions:       reversions,
-		defaultRevision: defaultRevision,
+	return &versionSet{
+		versions:       versions,
+		defaultVersion: defaultVersion,
 	}
 }

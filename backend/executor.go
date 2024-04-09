@@ -38,7 +38,7 @@ type activityExecutionResult struct {
 }
 
 type Executor interface {
-	ExecuteOrchestrator(ctx context.Context, iid api.InstanceID, revision int, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error)
+	ExecuteOrchestrator(ctx context.Context, iid api.InstanceID, version string, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error)
 	ExecuteActivity(context.Context, api.InstanceID, *protos.HistoryEvent) (*protos.HistoryEvent, error)
 }
 
@@ -97,7 +97,7 @@ func NewGrpcExecutor(be Backend, logger Logger, opts ...grpcExecutorOptions) (ex
 
 // ExecuteOrchestrator implements Executor
 func (executor *grpcExecutor) ExecuteOrchestrator(ctx context.Context, iid api.InstanceID,
-	revision int, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error) {
+	version string, oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*ExecutionResults, error) {
 	result := &ExecutionResults{complete: make(chan interface{})}
 	executor.pendingOrchestrators.Store(iid, result)
 	defer executor.pendingOrchestrators.Delete(iid)
@@ -106,7 +106,7 @@ func (executor *grpcExecutor) ExecuteOrchestrator(ctx context.Context, iid api.I
 		Request: &protos.WorkItem_OrchestratorRequest{
 			OrchestratorRequest: &protos.OrchestratorRequest{
 				InstanceId:  string(iid),
-				Revision:    int32(revision),
+				Version:     version,
 				ExecutionId: nil,
 				PastEvents:  oldEvents,
 				NewEvents:   newEvents,
@@ -200,7 +200,7 @@ func (g *grpcExecutor) GetWorkItems(req *protos.GetWorkItemsRequest, stream prot
 		g.logger.Infof("work item stream established by user-agent: %v", md.Get("user-agent"))
 	}
 
-	versioning.SaveReportedWorkflowRevisions(req.GetRevisions())
+	versioning.SaveReportedWorkflowVersions(req.GetVersions())
 
 	// There are some cases where the app may need to be notified when a client connects to fetch work items, like
 	// for auto-starting the worker. The app also has an opportunity to set itself as unavailable by returning an error.
@@ -313,20 +313,20 @@ func (g *grpcExecutor) RaiseEvent(ctx context.Context, req *protos.RaiseEventReq
 // StartInstance implements protos.TaskHubSidecarServiceServer
 func (g *grpcExecutor) StartInstance(ctx context.Context, req *protos.CreateInstanceRequest) (*protos.CreateInstanceResponse, error) {
 	instanceID := req.InstanceId
-	revision := versioning.GetDefaultRevisionForNewInstance(req.Name)
-	g.logger.Errorf("**** versioning ****: get default revision for new workflow instance: name=%s, revision=%d", req.Name, revision)
+	version := versioning.GetDefaultVersionForNewInstance(req.Name)
+	g.logger.Errorf("**** versioning ****: get default version for new workflow instance: name=%s, version=%s", req.Name, version)
 
 	ctx, span := helpers.StartNewCreateOrchestrationSpan(ctx, req.Name, req.Version.GetValue(), instanceID)
 	defer span.End()
 
-	e := helpers.NewExecutionStartedEvent(req.Name, instanceID, revision, req.Input, nil, helpers.TraceContextFromSpan(span))
+	e := helpers.NewExecutionStartedEvent(req.Name, instanceID, version, req.Input, nil, helpers.TraceContextFromSpan(span))
 	if err := g.backend.CreateOrchestrationInstance(ctx, e, WithOrchestrationIdReusePolicy(req.OrchestrationIdReusePolicy)); err != nil {
 		return nil, err
 	}
 
 	return &protos.CreateInstanceResponse{
 		InstanceId: instanceID,
-		Revision:   int32(revision),
+		Version:    version,
 	}, nil
 }
 

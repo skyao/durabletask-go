@@ -77,7 +77,7 @@ func (te *taskExecutor) ExecuteActivity(ctx context.Context, id api.InstanceID, 
 }
 
 // ExecuteOrchestrator implements backend.Executor and executes an orchestrator function in the current goroutine.
-func (te *taskExecutor) ExecuteOrchestrator(ctx context.Context, id api.InstanceID, revision int,
+func (te *taskExecutor) ExecuteOrchestrator(ctx context.Context, id api.InstanceID, version string,
 	oldEvents []*protos.HistoryEvent, newEvents []*protos.HistoryEvent) (*backend.ExecutionResults, error) {
 	orchestrationCtx := NewOrchestrationContext(te.Registry, id, oldEvents, newEvents)
 	actions := orchestrationCtx.start()

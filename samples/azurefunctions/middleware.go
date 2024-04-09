@@ -62,7 +62,7 @@ func MapOrchestrator(o task.Orchestrator) func(http.ResponseWriter, *http.Reques
 		}
 		fmt.Printf("Orchestrator request for instance ID '%s': %v\n", request.InstanceId, &request)
 
-		results, err := executor.ExecuteOrchestrator(context.TODO(), api.InstanceID(request.InstanceId), request.PastEvents, request.NewEvents)
+		results, err := executor.ExecuteOrchestrator(context.TODO(), api.InstanceID(request.InstanceId), "1.0.0", request.PastEvents, request.NewEvents)
 		if err != nil {
 			fmt.Printf("ERROR: Unexpected failure executing the orchestrator function: %v\n", err)
 			return

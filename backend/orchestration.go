@@ -19,7 +19,7 @@ type OrchestratorExecutor interface {
 	ExecuteOrchestrator(
 		ctx context.Context,
 		iid api.InstanceID,
-		revision int,
+		version string,
 		oldEvents []*protos.HistoryEvent,
 		newEvents []*protos.HistoryEvent) (*ExecutionResults, error)
 }
@@ -88,7 +88,7 @@ func (w *orchestratorProcessor) ProcessWorkItem(ctx context.Context, cwi WorkIte
 			}
 
 			// Run the user orchestrator code, providing the old history and new events together.
-			results, err := w.executor.ExecuteOrchestrator(ctx, wi.InstanceID, wi.Revision, wi.State.OldEvents(), wi.State.NewEvents())
+			results, err := w.executor.ExecuteOrchestrator(ctx, wi.InstanceID, wi.InstanceVersion, wi.State.OldEvents(), wi.State.NewEvents())
 			if err != nil {
 				return fmt.Errorf("error executing orchestrator: %w", err)
 			}

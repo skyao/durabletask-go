@@ -15,13 +15,13 @@ type WorkItem interface {
 }
 
 type OrchestrationWorkItem struct {
-	InstanceID api.InstanceID
-	Revision   int
-	NewEvents  []*HistoryEvent
-	LockedBy   string
-	RetryCount int32
-	State      *OrchestrationRuntimeState
-	Properties map[string]interface{}
+	InstanceID      api.InstanceID
+	InstanceVersion string
+	NewEvents       []*HistoryEvent
+	LockedBy        string
+	RetryCount      int32
+	State           *OrchestrationRuntimeState
+	Properties      map[string]interface{}
 }
 
 func (wi *OrchestrationWorkItem) Description() string {

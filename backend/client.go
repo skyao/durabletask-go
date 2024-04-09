@@ -54,15 +54,15 @@ func (c *backendClient) ScheduleNewOrchestration(ctx context.Context, orchestrat
 		req.InstanceId = u.String()
 	}
 
-	revision := versioning.GetDefaultRevisionForNewInstance(req.Name)
-	fmt.Printf("**** versioning ****: get default revision for new workflow instance from client: name=%s, revision=%d\n", req.Name, revision)
+	version := versioning.GetDefaultVersionForNewInstance(req.Name)
+	fmt.Printf("**** versioning ****: get default version for new workflow instance from client: name=%s, version=%s\n", req.Name, version)
 
 	var span trace.Span
 	ctx, span = helpers.StartNewCreateOrchestrationSpan(ctx, req.Name, req.Version.GetValue(), req.InstanceId)
 	defer span.End()
 
 	tc := helpers.TraceContextFromSpan(span)
-	e := helpers.NewExecutionStartedEvent(req.Name, req.InstanceId, revision, req.Input, nil, tc)
+	e := helpers.NewExecutionStartedEvent(req.Name, req.InstanceId, version, req.Input, nil, tc)
 	if err := c.be.CreateOrchestrationInstance(ctx, e, WithOrchestrationIdReusePolicy(req.OrchestrationIdReusePolicy)); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
